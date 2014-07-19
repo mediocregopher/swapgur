@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"strings"
 
 	"swapgur/frontend"
 	"swapgur/backend"
@@ -58,7 +59,9 @@ func bidnessLogic(r *http.Request) (int, string) {
 
 	}
 
-	offering := r.PostFormValue("offering")
+	offering := strings.TrimSpace(r.PostFormValue("offering"))
+	log.Printf("offered: '%s'", offering)
+
 	if offering == "" {
 		return 200, frontend.PageParagraph(welcome)
 	} else if !imgurDirectRegex.MatchString(offering) {
