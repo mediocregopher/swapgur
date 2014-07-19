@@ -32,6 +32,14 @@ func PageError(err string) string {
 	return `<a class="error">` + err + `</a>`
 }
 
+func PageParagraph(p string) string {
+	return `<p>` + p + `</p>`
+}
+
+func PageImage(url string) string {
+	return `<img src="` + url + `" alt="" />`
+}
+
 func Output(w io.Writer, pd *PageData) error {
 	return tpl.Execute(w, pd)
 }

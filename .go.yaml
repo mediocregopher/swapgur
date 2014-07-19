@@ -1,2 +1,4 @@
 ---
 path: webswap
+deps:
+    - loc: github.com/fzzy/radix

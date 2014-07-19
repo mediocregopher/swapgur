@@ -3,9 +3,10 @@ package main
 import (
 	"log"
 	"net/http"
+	"regexp"
 
 	"webswap/frontend"
-	//"webswap/backend"
+	"webswap/backend"
 )
 
 var categories = []string{
@@ -38,6 +39,11 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+var welcome = `The rules are easy: give an image and receive an image. You must
+use the raw image link (ends in jpg, jpeg, png, or gif).`
+
+var imgurDirectRegex = regexp.MustCompile(`^https?://i\.imgur\.com/[a-zA-Z0-9]+\.(jpg|jpeg|png|gif)$`)
+
 func bidnessLogic(r *http.Request) (int, string) {
 	path := r.URL.Path
 	pathData := frontend.ParsePath(path)
@@ -47,10 +53,21 @@ func bidnessLogic(r *http.Request) (int, string) {
 
 	if !categoryValid(pathData.Category) {
 		log.Printf("Invalid category '%s' hit", pathData.Category)
-		return 404, frontend.PageError("invalid category")
+		return 404, frontend.PageError("Invalid category")
 
 	}
-	//offering := r.PostFormValue("offering")
 
-	return 200, pathData.Category
+	offering := r.PostFormValue("offering")
+	if offering == "" {
+		return 200, frontend.PageParagraph(welcome)
+	} else if !imgurDirectRegex.MatchString(offering) {
+		return 400, frontend.PageError("Invalid URL")
+	}
+
+	receiving := backend.Swap(pathData.Category, offering)
+	if receiving == "" {
+		return 500, frontend.PageError("Internal Server Error :(")
+	}
+
+	return 200, frontend.PageImage(receiving)
 }

@@ -47,6 +47,14 @@
                 text-align: center;
                 width: 100%;
             }
+
+            #main #receiving {
+                padding-bottom: 1em;
+            }
+
+            #main #offering {
+                width: 20em;
+            }
         </style>
     </head>
     <body>
@@ -59,8 +67,14 @@
 
         <div id="main">
             <h1>Trade stuff for stuff</h1>
-            <div>
+            <div id="receiving">
                 {{.Receiving}}
+            </div>
+            <div>
+                <form action="" method="post">
+                    <input type="text" name="offering" id="offering" />
+                    <input type="submit" value="Swap!" />
+                </form>
             </div>
         </div>
     </body>
