@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"regexp"
 
-	"webswap/frontend"
-	"webswap/backend"
+	"swapgur/frontend"
+	"swapgur/backend"
 )
 
 var categories = []string{
@@ -39,8 +39,9 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-var welcome = `The rules are easy: give an image and receive an image. You must
-use the raw image link (ends in jpg, jpeg, png, or gif).`
+var welcome = `The rules are easy - give an image, receive an image from a
+random person in return. You must use the raw image link (ends in jpg, jpeg,
+png, or gif). An example link would be http://i.imgur.com/vHWOYAU.gif.`
 
 var imgurDirectRegex = regexp.MustCompile(`^https?://i\.imgur\.com/[a-zA-Z0-9]+\.(jpg|jpeg|png|gif)$`)
 

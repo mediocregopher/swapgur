@@ -1,4 +1,4 @@
 ---
-path: webswap
+path: swapgur
 deps:
     - loc: github.com/fzzy/radix
