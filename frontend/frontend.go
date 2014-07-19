@@ -9,13 +9,13 @@ import (
 
 type PageData struct {
 	Categories []string
-	Offering   template.HTML
+	Receiving  template.HTML
 }
 
-func NewPageData(offering string, categories ...string) *PageData {
+func NewPageData(receiving string, categories ...string) *PageData {
 	return &PageData{
 		Categories: categories,
-		Offering:   template.HTML(offering),
+		Receiving:  template.HTML(receiving),
 	}
 }
 

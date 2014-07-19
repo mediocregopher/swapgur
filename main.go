@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"webswap/frontend"
+	//"webswap/backend"
 )
 
 var categories = []string{
@@ -28,23 +29,28 @@ func categoryValid(category string) bool {
 }
 
 func RootHandler(w http.ResponseWriter, r *http.Request) {
+	status, receiving := bidnessLogic(r)
+	w.WriteHeader(status)
+
+	pd := frontend.NewPageData(receiving, categories...)
+	if err := frontend.Output(w, pd); err != nil {
+		log.Println(err)
+	}
+}
+
+func bidnessLogic(r *http.Request) (int, string) {
 	path := r.URL.Path
 	pathData := frontend.ParsePath(path)
 	if pathData.Category == "" {
 		pathData.Category = categories[0]
 	}
 
-	var offering string
 	if !categoryValid(pathData.Category) {
 		log.Printf("Invalid category '%s' hit", pathData.Category)
-		w.WriteHeader(404)
-		offering = frontend.PageError("invalid category")
-	} else {
-		offering = pathData.Category
-	}
+		return 404, frontend.PageError("invalid category")
 
-	pd := frontend.NewPageData(offering, "one", "two")
-	if err := frontend.Output(w, pd); err != nil {
-		log.Println(err)
 	}
+	//offering := r.PostFormValue("offering")
+
+	return 200, pathData.Category
 }
