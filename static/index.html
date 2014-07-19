@@ -18,6 +18,10 @@
                 color: #3299BB;
             }
 
+            .error {
+                color: #FF9900;
+            }
+
             #nav {
                 text-align: center;
                 position: absolute;
@@ -48,15 +52,16 @@
     <body>
         <div id="nav">
             <h1>Categories</h1>
-            <ul>
-                <li><a href="http://google.com">Google</a></li>
-                <li><a href="http://yahoo.com">Yahoo</a></li>
-                <li><a href="http://reddit.com">Reddit</a></li>
-            </ul>
+            <ul>{{range .Categories}}
+                <li><a href="/{{.}}">{{.}}</a></li>
+            {{end}}</ul>
         </div>
 
         <div id="main">
             <h1>Trade stuff for stuff</h1>
+            <div>
+                {{.Offering}}
+            </div>
         </div>
     </body>
 </html>
