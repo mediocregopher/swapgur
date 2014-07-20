@@ -6,8 +6,9 @@ import (
 	"regexp"
 	"strings"
 
-	"swapgur/frontend"
+	"swapgur/config"
 	"swapgur/backend"
+	"swapgur/frontend"
 )
 
 var categories = []string{
@@ -23,7 +24,8 @@ var categories = []string{
 
 func main() {
 	http.HandleFunc("/", RootHandler)
-	http.ListenAndServe("localhost:8787", nil)
+	log.Println("Starting ListenAndServer")
+	http.ListenAndServe(config.ListenAddr, nil)
 }
 
 func categoryValid(category string) bool {

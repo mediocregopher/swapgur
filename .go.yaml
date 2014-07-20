@@ -2,3 +2,4 @@
 path: swapgur
 deps:
     - loc: github.com/fzzy/radix
+    - loc: github.com/mediocregopher/flagconfig

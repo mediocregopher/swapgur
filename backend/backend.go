@@ -3,6 +3,8 @@ package backend
 import (
 	"github.com/fzzy/radix/redis"
 	"log"
+
+	"swapgur/config"
 )
 
 type swapReq struct {
@@ -14,7 +16,7 @@ type swapReq struct {
 var swapCh = make(chan *swapReq)
 
 func init() {
-	conn, err := redis.Dial("tcp", "localhost:6379")
+	conn, err := redis.Dial("tcp", config.RedisAddr)
 	if err != nil {
 		log.Fatal(err)
 	}
