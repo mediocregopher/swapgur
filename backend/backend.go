@@ -33,14 +33,10 @@ func connSpin() {
 
 func Swap(category, giving string) string {
 	key := "catbuffer:" + category
-	conn := <-connGetCh
 
-	var rep *redis.Reply
-	if giving == "" {
-		rep = conn.Cmd("get", key)
-	} else {
-		rep = conn.Cmd("getset", key, giving)
-	}
+	conn := <-connGetCh
+	rep := conn.Cmd("getset", key, giving)
+	connPutCh<- conn
 
 	var receiving string
 	var err error
@@ -57,7 +53,26 @@ func Swap(category, giving string) string {
 			)
 		}
 	}
+	return receiving
+}
+
+func Get(category string) string {
+	key := "catbuffer:" + category
+
+	conn := <-connGetCh
+	rep := conn.Cmd("get", key)
 	connPutCh<- conn
+
+	var receiving string
+	var err error
+	if rep.Type == redis.NilReply {
+		receiving = ""
+	} else {
+		receiving, err = rep.Str()
+		if err != nil {
+			log.Printf("redis error: %s - category:%s", err, category)
+		}
+	}
 	return receiving
 }
 
@@ -67,10 +82,11 @@ func IPCanSwap(ip, url string) bool {
 	}
 
 	key := "ipurlcount:" + ip + ":" + url
-	conn := <-connGetCh
 
+	conn := <-connGetCh
 	rep := conn.Cmd("incr", key)
 	conn.Cmd("expire", key, 86400)
+	connPutCh<- conn
 
 	count, err := rep.Int()
 	if err != nil {

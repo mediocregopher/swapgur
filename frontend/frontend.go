@@ -4,7 +4,6 @@ import (
 	"html/template"
 	"io"
 	"log"
-	"strings"
 )
 
 type PageData struct {
@@ -44,15 +43,3 @@ func Output(w io.Writer, pd *PageData) error {
 	return tpl.Execute(w, pd)
 }
 
-type PathData struct {
-	Category string
-}
-
-func ParsePath(path string) *PathData {
-	pathSplit := strings.Split(path, "/")
-	pathData := PathData{}
-	if len(pathSplit) > 1 {
-		pathData.Category = pathSplit[1]
-	}
-	return &pathData
-}

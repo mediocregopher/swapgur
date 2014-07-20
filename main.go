@@ -55,24 +55,25 @@ png, or gif). An example link would be http://i.imgur.com/vHWOYAU.gif`
 var imgurDirectRegex = regexp.MustCompile(`^https?://i\.imgur\.com/[a-zA-Z0-9]+\.(jpg|jpeg|png|gif)$`)
 
 func bidnessLogic(r *http.Request) (int, string) {
-	path := r.URL.Path
-	pathData := frontend.ParsePath(path)
-	if pathData.Category == "" {
-		pathData.Category = categories[0]
+	pathData := getPathData(r)
+	if pathData.category == "" {
+		pathData.category = categories[0]
 	}
 
-	if !categoryValid(pathData.Category) {
-		log.Printf("Invalid category '%s' hit", pathData.Category)
+	if !categoryValid(pathData.category) {
+		log.Printf("Invalid category '%s' hit", pathData.category)
 		return 404, frontend.PageError("Invalid category")
 
 	}
 
 	offering := strings.TrimSpace(r.PostFormValue("offering"))
 
-	if offering == "" {
-		return 200, frontend.PageParagraph(welcome)
-	} else if !imgurDirectRegex.MatchString(offering) {
-		return 400, frontend.PageError("Invalid URL")
+	if !pathData.mooch {
+		if offering == "" {
+			return 200, frontend.PageParagraph(welcome)
+		} else if !imgurDirectRegex.MatchString(offering) {
+			return 400, frontend.PageError("Invalid URL")
+		}
 	}
 
 	ip, err := determineIP(r)
@@ -83,7 +84,12 @@ func bidnessLogic(r *http.Request) (int, string) {
 		return 400, frontend.PageError("You have tried to swap that image too many times! Try a different one.")
 	}
 
-	receiving := backend.Swap(pathData.Category, offering)
+	var receiving string
+	if pathData.mooch {
+		receiving = backend.Get(pathData.category)
+	} else {
+		receiving = backend.Swap(pathData.category, offering)
+	}
 
 	if receiving == "" {
 		return 500, frontend.PageError("Internal Server Error :(")
@@ -91,7 +97,7 @@ func bidnessLogic(r *http.Request) (int, string) {
 
 	log.Printf(
 		"category: `%s`, offered: '%s', received: '%s'",
-		pathData.Category,
+		pathData.category,
 		offering,
 		receiving,
 	)
@@ -106,4 +112,24 @@ func determineIP(r *http.Request) (string, error) {
 
 	ip, _, err := net.SplitHostPort(r.RemoteAddr)
 	return ip, err
+}
+
+type pathData struct {
+	category string
+	mooch    bool
+}
+
+func getPathData(r *http.Request) *pathData {
+	path := r.URL.Path
+	pathSplit := strings.Split(path, "/")
+	pathData := pathData{}
+	if len(pathSplit) > 1 {
+		pathData.category = pathSplit[1]
+	}
+
+	if r.FormValue("mooch") != "" {
+		pathData.mooch = true
+	}
+
+	return &pathData
 }
