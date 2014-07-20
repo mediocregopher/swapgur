@@ -84,27 +84,25 @@ func bidnessLogic(r *http.Request) (int, string) {
 
 	offering := strings.TrimSpace(r.PostFormValue("offering"))
 
+	var receiving string
 	if !pathData.mooch {
 		if offering == "" {
 			return 200, frontend.PageParagraph(welcome)
 		} else if !imgurDirectRegex.MatchString(offering) {
 			return 400, frontend.PageError("Invalid URL")
 		}
-	}
 
-	ip, err := determineIP(r)
-	if err != nil {
-		log.Printf("%s: determing ip")
-		return 500, frontend.PageError("Internal Server Error :(")
-	} else if !backend.IPCanSwap(ip, offering) {
-		return 400, frontend.PageError("You have tried to swap that image too many times! Try a different one.")
-	}
+		ip, err := determineIP(r)
+		if err != nil {
+			log.Printf("%s: determing ip")
+			return 500, frontend.PageError("Internal Server Error :(")
+		} else if !backend.IPCanSwap(ip, offering) {
+			return 400, frontend.PageError("You have tried to swap that image too many times! Try a different one.")
+		}
 
-	var receiving string
-	if pathData.mooch {
-		receiving = backend.Get(pathData.category)
-	} else {
 		receiving = backend.Swap(pathData.category, offering)
+	} else {
+		receiving = backend.Get(pathData.category)
 	}
 
 	if receiving == "" {
