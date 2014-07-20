@@ -92,8 +92,9 @@
                 {{.Receiving}}
             </div>
             <div id="offering-form">
-                <form action="" method="post">
-                    Imgur link: <input type="text" name="offering-link" class="offering" />
+                <form action="" method="post" enctype="multipart/form-data">
+                    <label for="offering-link">Imgur link:</label>
+                    <input type="text" name="offering-link" class="offering" />
                     <a id="offering-or">or</a>
                     <input type="file" name="offering-file" />
                     <br/><br/>

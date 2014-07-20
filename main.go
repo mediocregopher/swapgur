@@ -1,6 +1,16 @@
 package main
 
 import (
+	"bytes"
+	"crypto/md5"
+	"encoding/hex"
+	"encoding/base64"
+	"errors"
+	"image"
+	_ "image/jpeg"
+	_ "image/png"
+	_ "image/gif"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -34,6 +44,13 @@ var categoryDefaults = []string{
 	"http://i.imgur.com/gUgkpTx.jpg", //sports
 }
 
+var allowedImageTypes = map[string]bool {
+	"jpeg": true,
+	"jpg": true,
+	"png": true,
+	"gif": true,
+}
+
 func main() {
 
 	for i := range categoryDefaults {
@@ -65,6 +82,7 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+var internalErr = frontend.PageError("Internal Server Error :(")
 var welcome = `The rules are easy - give an image, receive an image from a
 random person in return. You must use the raw image link (ends in jpg, jpeg,
 png, or gif). An example link would be http://i.imgur.com/vHWOYAU.gif`
@@ -83,21 +101,37 @@ func bidnessLogic(r *http.Request) (int, string, bool) {
 
 	}
 
-	offering := strings.TrimSpace(r.PostFormValue("offering-link"))
+	ip, err := determineIP(r)
+	if err != nil {
+		log.Printf("%s - determing ip")
+		return 500, internalErr, true
+	}
 
-	var receiving string
+	offeringLink, offeringFile, err := parseForm(r)
+	if err != nil {
+		log.Printf("%s - parsing file", err)
+		return 500, internalErr, true
+	}
+
+	var offering, receiving string
 	if !pathData.mooch {
-		if offering == "" {
+		if offeringLink != "" {
+			if !imgurDirectRegex.MatchString(offeringLink) {
+				return 400, frontend.PageError("Invalid URL"), true
+			}
+			offering = offeringLink
+		} else if offeringFile != nil { // TODO this is probably wrong
+			if offering, err = encodeImage(offeringFile); err != nil {
+				log.Printf("%s - encoding image", err)
+				return 400, frontend.PageError("Could not validate image"), true
+			}
+		} else {
 			return 200, frontend.PageParagraph(welcome), false
-		} else if !imgurDirectRegex.MatchString(offering) {
-			return 400, frontend.PageError("Invalid URL"), true
 		}
 
-		ip, err := determineIP(r)
-		if err != nil {
-			log.Printf("%s: determing ip")
-			return 500, frontend.PageError("Internal Server Error :("), true
-		} else if !backend.IPCanSwap(ip, offering) {
+		offeringMD5 := md5Hex(offering)
+
+		if !backend.IPCanSwap(ip, offeringMD5) {
 			return 400, frontend.PageError("You have tried to swap that image too many times! Try a different one."), true
 		}
 
@@ -107,15 +141,10 @@ func bidnessLogic(r *http.Request) (int, string, bool) {
 	}
 
 	if receiving == "" {
-		return 500, frontend.PageError("Internal Server Error :("), true
+		return 500, internalErr, true
 	}
 
-	log.Printf(
-		"category: `%s`, offered: '%s', received: '%s'",
-		pathData.category,
-		offering,
-		receiving,
-	)
+	log.Printf("ip: %s, category: `%s`", ip, pathData.category)
 
 	return 200, frontend.PageImage(receiving), true
 }
@@ -127,6 +156,27 @@ func determineIP(r *http.Request) (string, error) {
 
 	ip, _, err := net.SplitHostPort(r.RemoteAddr)
 	return ip, err
+}
+
+func parseForm(r *http.Request) (string, io.Reader, error) {
+	var offeringLink string
+	var offeringFile io.Reader
+	var err error
+	if err = r.ParseMultipartForm(10 * 1024 * 1024); err != nil {
+		// err != nil when the content-type isn't multipart
+		return "", nil, nil
+	}
+	if _, ok := r.MultipartForm.Value["offering-link"]; ok {
+		offeringLink = r.MultipartForm.Value["offering-link"][0]
+	}
+	if _, ok := r.MultipartForm.File["offering-file"]; ok {
+		offeringHeader := r.MultipartForm.File["offering-file"][0]
+		offeringFile, err = offeringHeader.Open()
+		if err != nil {
+			return "", nil, err
+		}
+	}
+	return offeringLink, offeringFile, nil
 }
 
 type pathData struct {
@@ -147,4 +197,38 @@ func getPathData(r *http.Request) *pathData {
 	}
 
 	return &pathData
+}
+
+func md5Hex(input string) string {
+	h := md5.New()
+	h.Write([]byte(input))
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+func encodeImage(img io.Reader) (string, error) {
+
+	imgTee := bytes.NewBuffer(nil)
+	img = io.TeeReader(img, imgTee)
+
+	_, t, err := image.DecodeConfig(img)
+	if err != nil {
+		return "", err
+	}
+
+	if _, ok := allowedImageTypes[t]; !ok {
+		return "", errors.New("Unknown image type: "+t)
+	}
+
+	buf := bytes.NewBuffer(nil)
+	buf.WriteString("data:image/"+t+";base64,")
+	enc := base64.NewEncoder(base64.StdEncoding, buf)
+	if _, err := io.Copy(enc, imgTee); err != nil {
+		log.Println(err)
+		return "", err
+	}
+	if _, err := io.Copy(enc, img); err != nil {
+		log.Println(err)
+		return "", err
+	}
+	return buf.String(), nil
 }
