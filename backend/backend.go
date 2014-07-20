@@ -7,55 +7,56 @@ import (
 	"swapgur/config"
 )
 
-type swapReq struct {
-	category string
-	giving   string
-	retCh    chan string
-}
-
-var swapCh = make(chan *swapReq)
+var connGetCh = make(chan *redis.Client, config.RedisConns)
+var connPutCh = make(chan *redis.Client, config.RedisConns)
 
 func init() {
-	conn, err := redis.Dial("tcp", config.RedisAddr)
-	if err != nil {
-		log.Fatal(err)
+	log.Printf("Creating %d redis connections", config.RedisConns)
+	for i := 0; i < config.RedisConns; i++ {
+		conn, err := redis.Dial("tcp", config.RedisAddr)
+		if err != nil {
+			log.Fatal(err)
+		}
+		connPutCh<- conn
 	}
-	go redisSpin(conn)
+	log.Println("Redis conns created")
+	go connSpin()
 }
 
-func redisSpin(conn *redis.Client) {
-	var rep *redis.Reply
-	var receiving string
-	var err error
+func connSpin() {
+	var conn *redis.Client
 	for {
-		select {
-		case req := <-swapCh:
-			key := "catbuffer:" + req.category
-			if req.giving == "" {
-				rep = conn.Cmd("get", key)
-			} else {
-				rep = conn.Cmd("getset", key, req.giving)
-			}
-			if rep.Type == redis.NilReply {
-				receiving = ""
-			} else {
-				receiving, err = rep.Str()
-				if err != nil {
-					log.Printf(
-						"redis error: %s - category:%s giving:%s",
-						err,
-						req.category,
-						req.giving,
-					)
-				}
-			}
-			req.retCh <- receiving
-		}
+		conn = <-connPutCh
+		connGetCh<- conn
 	}
 }
 
 func Swap(category, giving string) string {
-	req := swapReq{category, giving, make(chan string)}
-	swapCh <- &req
-	return <-req.retCh
+	conn := <-connGetCh
+
+	key := "catbuffer:" + category
+	var rep *redis.Reply
+	if giving == "" {
+		rep = conn.Cmd("get", key)
+	} else {
+		rep = conn.Cmd("getset", key, giving)
+	}
+
+	var receiving string
+	var err error
+	if rep.Type == redis.NilReply {
+		receiving = ""
+	} else {
+		receiving, err = rep.Str()
+		if err != nil {
+			log.Printf(
+				"redis error: %s - category:%s giving:%s",
+				err,
+				category,
+				giving,
+			)
+		}
+	}
+	connPutCh<- conn
+	return receiving
 }
