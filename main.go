@@ -55,10 +55,11 @@ func categoryValid(category string) bool {
 }
 
 func RootHandler(w http.ResponseWriter, r *http.Request) {
-	status, receiving := bidnessLogic(r)
+	status, receiving, centered := bidnessLogic(r)
 	w.WriteHeader(status)
 
 	pd := frontend.NewPageData(receiving, categories...)
+	pd.ReceivingCenter = centered
 	if err := frontend.Output(w, pd); err != nil {
 		log.Println(err)
 	}
@@ -70,7 +71,7 @@ png, or gif). An example link would be http://i.imgur.com/vHWOYAU.gif`
 
 var imgurDirectRegex = regexp.MustCompile(`^https?://i\.imgur\.com/[a-zA-Z0-9]+\.(jpg|jpeg|png|gif)$`)
 
-func bidnessLogic(r *http.Request) (int, string) {
+func bidnessLogic(r *http.Request) (int, string, bool) {
 	pathData := getPathData(r)
 	if pathData.category == "" {
 		pathData.category = categories[0]
@@ -78,26 +79,26 @@ func bidnessLogic(r *http.Request) (int, string) {
 
 	if !categoryValid(pathData.category) {
 		log.Printf("Invalid category '%s' hit", pathData.category)
-		return 404, frontend.PageError("Invalid category")
+		return 404, frontend.PageError("Invalid category"), true
 
 	}
 
-	offering := strings.TrimSpace(r.PostFormValue("offering"))
+	offering := strings.TrimSpace(r.PostFormValue("offering-link"))
 
 	var receiving string
 	if !pathData.mooch {
 		if offering == "" {
-			return 200, frontend.PageParagraph(welcome)
+			return 200, frontend.PageParagraph(welcome), false
 		} else if !imgurDirectRegex.MatchString(offering) {
-			return 400, frontend.PageError("Invalid URL")
+			return 400, frontend.PageError("Invalid URL"), true
 		}
 
 		ip, err := determineIP(r)
 		if err != nil {
 			log.Printf("%s: determing ip")
-			return 500, frontend.PageError("Internal Server Error :(")
+			return 500, frontend.PageError("Internal Server Error :("), true
 		} else if !backend.IPCanSwap(ip, offering) {
-			return 400, frontend.PageError("You have tried to swap that image too many times! Try a different one.")
+			return 400, frontend.PageError("You have tried to swap that image too many times! Try a different one."), true
 		}
 
 		receiving = backend.Swap(pathData.category, offering)
@@ -106,7 +107,7 @@ func bidnessLogic(r *http.Request) (int, string) {
 	}
 
 	if receiving == "" {
-		return 500, frontend.PageError("Internal Server Error :(")
+		return 500, frontend.PageError("Internal Server Error :("), true
 	}
 
 	log.Printf(
@@ -116,7 +117,7 @@ func bidnessLogic(r *http.Request) (int, string) {
 		receiving,
 	)
 
-	return 200, frontend.PageImage(receiving)
+	return 200, frontend.PageImage(receiving), true
 }
 
 func determineIP(r *http.Request) (string, error) {

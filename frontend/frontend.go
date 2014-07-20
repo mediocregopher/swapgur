@@ -7,8 +7,9 @@ import (
 )
 
 type PageData struct {
-	Categories []string
-	Receiving  template.HTML
+	Categories      []string
+	Receiving       template.HTML
+	ReceivingCenter bool
 }
 
 func NewPageData(receiving string, categories ...string) *PageData {
