@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net"
 	"net/http"
 	"regexp"
 	"strings"
@@ -74,6 +75,14 @@ func bidnessLogic(r *http.Request) (int, string) {
 		return 400, frontend.PageError("Invalid URL")
 	}
 
+	ip, err := determineIP(r)
+	if err != nil {
+		log.Printf("%s: determing ip")
+		return 500, frontend.PageError("Internal Server Error :(")
+	} else if !backend.IPCanSwap(ip, offering) {
+		return 400, frontend.PageError("You have tried to swap that image too many times! Try a different one.")
+	}
+
 	receiving := backend.Swap(pathData.Category, offering)
 
 	if receiving == "" {
@@ -87,6 +96,14 @@ func bidnessLogic(r *http.Request) (int, string) {
 		receiving,
 	)
 
-
 	return 200, frontend.PageImage(receiving)
+}
+
+func determineIP(r *http.Request) (string, error) {
+	if fips, ok := r.Header["X-Forwarded-IP"]; ok && len(fips) > 0 {
+		return fips[0], nil
+	}
+
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	return ip, err
 }

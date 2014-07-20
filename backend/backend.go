@@ -32,9 +32,9 @@ func connSpin() {
 }
 
 func Swap(category, giving string) string {
+	key := "catbuffer:" + category
 	conn := <-connGetCh
 
-	key := "catbuffer:" + category
 	var rep *redis.Reply
 	if giving == "" {
 		rep = conn.Cmd("get", key)
@@ -59,4 +59,34 @@ func Swap(category, giving string) string {
 	}
 	connPutCh<- conn
 	return receiving
+}
+
+func IPCanSwap(ip, url string) bool {
+	if config.SwapsPerDay == 0 {
+		return true
+	}
+
+	key := "ipurlcount:" + ip + ":" + url
+	conn := <-connGetCh
+
+	rep := conn.Cmd("incr", key)
+	conn.Cmd("expire", key, 86400)
+
+	count, err := rep.Int()
+	if err != nil {
+		log.Printf("redis error: %s - ip:%s url:%s", err, ip, url)
+		return true
+	}
+
+	if count > config.SwapsPerDay {
+		log.Printf(
+			"ip %s has tried to swap %s %d times today, rejecting",
+			ip,
+			url,
+			count,
+		)
+		return false
+	}
+
+	return true
 }
