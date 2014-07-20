@@ -23,7 +23,7 @@ var categories = []string{
 
 func main() {
 	http.HandleFunc("/", RootHandler)
-	http.ListenAndServe(":8787", nil)
+	http.ListenAndServe("localhost:8787", nil)
 }
 
 func categoryValid(category string) bool {
