@@ -42,7 +42,7 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 
 var welcome = `The rules are easy - give an image, receive an image from a
 random person in return. You must use the raw image link (ends in jpg, jpeg,
-png, or gif). An example link would be http://i.imgur.com/vHWOYAU.gif.`
+png, or gif). An example link would be http://i.imgur.com/vHWOYAU.gif`
 
 var imgurDirectRegex = regexp.MustCompile(`^https?://i\.imgur\.com/[a-zA-Z0-9]+\.(jpg|jpeg|png|gif)$`)
 
@@ -60,7 +60,6 @@ func bidnessLogic(r *http.Request) (int, string) {
 	}
 
 	offering := strings.TrimSpace(r.PostFormValue("offering"))
-	log.Printf("offered: '%s'", offering)
 
 	if offering == "" {
 		return 200, frontend.PageParagraph(welcome)
@@ -69,9 +68,18 @@ func bidnessLogic(r *http.Request) (int, string) {
 	}
 
 	receiving := backend.Swap(pathData.Category, offering)
+
 	if receiving == "" {
 		return 500, frontend.PageError("Internal Server Error :(")
 	}
+
+	log.Printf(
+		"category: `%s`, offered: '%s', received: '%s'",
+		pathData.Category,
+		offering,
+		receiving,
+	)
+
 
 	return 200, frontend.PageImage(receiving)
 }
