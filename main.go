@@ -11,9 +11,14 @@ import (
 )
 
 var categories = []string{
-	"all",
+	"random",
+	"art",
+	"aww",
 	"funny",
-	"notfunny",
+	"gifs",
+	"nature",
+	"nsfw",
+	"sports",
 }
 
 func main() {
