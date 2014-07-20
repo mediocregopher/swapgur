@@ -23,7 +23,23 @@ var categories = []string{
 	"sports",
 }
 
+var categoryDefaults = []string{
+	"http://i.imgur.com/vHWOYAU.gif", //random
+	"http://i.imgur.com/D8CoAEd.jpg", //art
+	"http://i.imgur.com/h2EiFHA.jpg", //aww
+	"http://i.imgur.com/QnTc8BW.gif", //funny
+	"http://i.imgur.com/QnTc8BW.gif", //gifs
+	"http://i.imgur.com/Yavzdox.jpg", //nature
+	"http://i.imgur.com/N8lL8H6.jpg", //nsfw
+	"http://i.imgur.com/gUgkpTx.jpg", //sports
+}
+
 func main() {
+
+	for i := range categoryDefaults {
+		backend.Swap(categories[i], categoryDefaults[i])
+	}
+
 	http.HandleFunc("/", RootHandler)
 	log.Println("Starting ListenAndServer")
 	http.ListenAndServe(config.ListenAddr, nil)
