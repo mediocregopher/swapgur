@@ -150,8 +150,9 @@ func bidnessLogic(r *http.Request) (int, string, bool) {
 }
 
 func determineIP(r *http.Request) (string, error) {
-	if fips, ok := r.Header["X-Forwarded-IP"]; ok && len(fips) > 0 {
-		return fips[0], nil
+	if fips, ok := r.Header["X-Forwarded-For"]; ok && len(fips) > 0 {
+		ipSplit := strings.Split(fips[0], ",")
+		return strings.TrimSpace(ipSplit[0]), nil
 	}
 
 	ip, _, err := net.SplitHostPort(r.RemoteAddr)
