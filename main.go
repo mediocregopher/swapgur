@@ -166,6 +166,9 @@ func parseForm(r *http.Request) (string, io.Reader, error) {
 		// err != nil when the content-type isn't multipart
 		return "", nil, nil
 	}
+	if r.MultipartForm == nil {
+		return "", nil, nil
+	}
 	if _, ok := r.MultipartForm.Value["offering-link"]; ok {
 		offeringLink = r.MultipartForm.Value["offering-link"][0]
 	}
